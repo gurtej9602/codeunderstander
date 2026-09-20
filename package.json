@@ -1,0 +1,32 @@
+{
+  "name": "codeunderstander",
+  "version": "1.0.0",
+  "description": "CodeUnderstander — Multi-Language AI Code Explainer using Google Gemini Free Tier",
+  "scripts": {
+    "prestart": "node scripts/free-ports.js",
+    "start": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run server\" \"npm run client\"",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev:server\" \"npm run dev:client\"",
+    "server": "npm --prefix server start",
+    "client": "npm --prefix client start",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+  },
+  "keywords": [
+    "code-explainer",
+    "gemini",
+    "free-tier",
+    "react",
+    "express",
+    "javascript",
+    "python",
+    "java",
+    "cpp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

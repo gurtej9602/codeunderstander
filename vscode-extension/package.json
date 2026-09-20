@@ -1,0 +1,136 @@
+{
+  "name": "codeunderstander",
+  "displayName": "CodeUnderstander — AI Code Explainer",
+  "description": "Understand any code in plain English directly in VS Code. Line-by-line breakdowns, analogies, and walkthroughs powered by Gemini.",
+  "version": "1.0.0",
+  "publisher": "GurtejSingh1476",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codeunderstander/codeunderstander"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "explain code",
+    "code understanding",
+    "line by line",
+    "gemini",
+    "education",
+    "beginner",
+    "ai assistant"
+  ],
+  "icon": "icon.png",
+  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:codeunderstander.explainFile",
+    "onCommand:codeunderstander.explainSelection",
+    "onCommand:codeunderstander.setApiKey"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeunderstander.explainFile",
+        "title": "CodeUnderstander: Explain Active File",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "codeunderstander.explainSelection",
+        "title": "CodeUnderstander: Explain Selected Code",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "codeunderstander.setApiKey",
+        "title": "CodeUnderstander: Set Gemini API Key",
+        "icon": "$(key)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "codeunderstander.explainSelection",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "codeunderstander.explainFile",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codeunderstander.explainFile",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codeunderstander.explainSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "codeunderstander.explainFile",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "codeunderstander.explainFile",
+          "group": "navigation",
+          "title": "Explain Active File"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CodeUnderstander",
+      "properties": {
+        "codeunderstander.geminiModel": {
+          "type": "string",
+          "default": "gemini-flash-lite-latest",
+          "enum": [
+            "gemini-flash-lite-latest",
+            "gemini-flash-latest",
+            "gemini-3.6-flash",
+            "gemini-3.8-flash"
+          ],
+          "description": "The Gemini model used to explain code."
+        },
+        "codeunderstander.theme": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "neon",
+            "forest",
+            "slate",
+            "sunset",
+            "ocean",
+            "dracula",
+            "monokai",
+            "nord",
+            "crimson",
+            "coffee"
+          ],
+          "description": "Theme palette for the explanation panel. 'auto' matches your VS Code theme."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "echo Prepublishing...",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0"
+  }
+}

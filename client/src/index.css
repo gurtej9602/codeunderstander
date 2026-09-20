@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── ColorHunt Neon Palette: #5003C0 #AB03A9 #FF467A #FFD51E ── */
+:root {
+  --bg:        #0a0015;
+  --surface:   #140028;
+  --purple:    #5003C0;
+  --magenta:   #AB03A9;
+  --pink:      #FF467A;
+  --yellow:    #FFD51E;
+  --text:      #f0e6ff;
+  --muted:     #b39ddb;
+}
+
+@layer base {
+  html { background-color: var(--bg); }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+  }
+  code, pre { font-family: 'JetBrains Mono', monospace; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: #060010; }
+::-webkit-scrollbar-thumb { background: #5003C0; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #AB03A9; }
+
+/* Selection */
+::selection { background: rgba(80,3,192,0.45); color: #FFD51E; }
+
+/* Glass panels */
+.glass-panel {
+  background: rgba(80,3,192,0.08);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(171,3,169,0.2);
+}
+.glass-panel-hover:hover {
+  border-color: rgba(255,70,122,0.3);
+  box-shadow: 0 4px 24px -4px rgba(255,70,122,0.15);
+}
