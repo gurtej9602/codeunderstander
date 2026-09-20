@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/dist",
+  "installCommand": "npm install",
+  "functions": {
+    "api/review.js": { "maxDuration": 60 },
+    "api/health.js": { "maxDuration": 10 }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

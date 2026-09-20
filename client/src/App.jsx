@@ -27,8 +27,6 @@ export default function App() {
   const [fileError, setFileError] = useState(null);
 
   const [isLoading, setIsLoading] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_URL || '';
-
   const [reviewResult, setReviewResult] = useState(null);
   const [apiError, setApiError] = useState(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
@@ -37,7 +35,7 @@ export default function App() {
   const [isCopiedMarkdown, setIsCopiedMarkdown] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/health`)
+    fetch('/api/health')
       .then(r => r.json())
       .then(d => setBackendHealth(d.status === 'healthy' ? 'healthy' : 'unhealthy'))
       .catch(() => setBackendHealth('offline'));
@@ -82,7 +80,7 @@ export default function App() {
     setReviewResult(null);
     setCooldownRemaining(THROTTLE_SECONDS);
     try {
-      const res = await fetch(`${API_BASE}/api/review`, {
+      const res = await fetch('/api/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: fileContent, extension: selectedFile.extension, fileName: selectedFile.name })
