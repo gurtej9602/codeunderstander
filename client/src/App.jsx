@@ -323,7 +323,12 @@ export default function App() {
 
             <UnderstandingHeader data={{ ...reviewResult, fileName: selectedFile?.name }} />
             <StepByStep steps={reviewResult.stepByStep} />
-            <LineByLineExplanation lineByLine={reviewResult.lineByLine} rawCode={fileContent} />
+            <LineByLineExplanation
+              lineByLine={reviewResult.lineByLine}
+              rawCode={fileContent}
+              language={reviewResult.language || detectedLanguage}
+              fileName={selectedFile?.name || 'code'}
+            />
             <ConceptCards concepts={reviewResult.concepts} keyTerms={reviewResult.keyTerms} />
 
             {/* History Panel after results */}

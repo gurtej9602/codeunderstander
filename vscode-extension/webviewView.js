@@ -354,22 +354,41 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
       gap: 6px;
       transition: all 0.15s;
     }
-    .btn:hover {
-      border-color: #38bdf8;
-      color: #38bdf8;
+    .btn:hover { border-color: #38bdf8; color: #38bdf8; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
+    .btn-primary { background: #0284c7; color: #ffffff; border-color: transparent; }
+    .btn-primary:hover { background: #0369a1; color: #ffffff; }
+
+    /* Comment insertion styles */
+    .comment-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 12px;
     }
-    .btn-sm {
-      padding: 4px 10px;
-      font-size: 11px;
+    .comment-bar label { color: var(--text-muted); font-size: 11px; }
+    .comment-bar select {
+      padding: 3px 8px; border-radius: 6px;
+      background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+      color: #f8fafc; font-size: 11px; cursor: pointer;
     }
-    .btn-primary {
-      background: #0284c7;
-      color: #ffffff;
-      border-color: transparent;
+    .line-checkbox {
+      width: 15px; height: 15px; cursor: pointer;
+      accent-color: #38bdf8; flex-shrink: 0; margin-top: 2px;
     }
-    .btn-primary:hover {
-      background: #0369a1;
-      color: #ffffff;
+    .line-row.checked { background: rgba(56,189,248,0.07); }
+    .line-row.checked .line-num { border-color: #38bdf8; color: #38bdf8; }
+    .sel-count {
+      font-size: 11px; font-family: monospace;
+      padding: 1px 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.08); color: #ffd51e;
+      border: 1px solid var(--border);
     }
   </style>
 </head>
@@ -446,19 +465,30 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
   <div class="card">
     <div class="card-title" style="justify-content: space-between;">
       <span>🔍 Line-by-Line Breakdown (${lineByLine.length} Lines)</span>
-      <span style="font-size: 10px; text-transform: none; color: var(--text-muted);">Click line to jump in editor</span>
+      <span id="selCount" class="sel-count" style="display:none;text-transform:none;">0 selected</span>
     </div>
-    <input
-      type="text"
-      class="search-box"
-      id="lineSearch"
-      placeholder="Search by line # or keyword..."
-      oninput="filterLines(this.value)"
-    />
+
+    <!-- Comment insertion toolbar -->
+    <div class="comment-bar">
+      <label>Select:</label>
+      <button class="btn btn-sm" id="selAllBtn" onclick="selectAllLines()">☑ All</button>
+      <button class="btn btn-sm" onclick="selectCodeLines()">⚡ Code Only</button>
+      <button class="btn btn-sm" id="clearBtn" onclick="clearSelection()" style="display:none;">✕ Clear</button>
+      <label style="margin-left:6px;">Position:</label>
+      <select id="commentStyle">
+        <option value="above">Above Line</option>
+        <option value="inline">Inline</option>
+      </select>
+      <button class="btn btn-sm btn-primary" onclick="copyCommentedCode()">📋 Copy with Comments</button>
+      <button class="btn btn-sm" onclick="insertCommentsInEditor()">✏️ Insert into Editor</button>
+    </div>
+
+    <input type="text" class="search-box" id="lineSearch" placeholder="Search by line # or keyword..." oninput="filterLines(this.value)" />
     <div class="line-table" id="lineTable">
       ${lineByLine.map(item => `
-        <div class="line-row" data-line="${item.lineNumber}" onclick="jumpToLine(${item.lineNumber})">
-          <div class="line-num">L${item.lineNumber}</div>
+        <div class="line-row" data-line="${item.lineNumber}" data-code="${escapeHtml(item.code || ' ')}" data-expl="${escapeHtml(item.explanation || '')}" data-blank="${(!item.code || /^\s*[\{\}\(\)\[\];]?\s*$/.test(item.code)) ? '1' : '0'}">
+          <input type="checkbox" class="line-checkbox" onclick="toggleLineCheck(event, ${item.lineNumber})" title="Select line for commenting" />
+          <div class="line-num" onclick="jumpToLine(${item.lineNumber})" style="cursor:pointer;" title="Click to jump to this line">L${item.lineNumber}</div>
           <div class="line-code">${escapeHtml(item.code || ' ')}</div>
           <div class="line-expl">${escapeHtml(item.explanation || '')}</div>
         </div>
@@ -512,6 +542,7 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
   <script>
     const vscode = acquireVsCodeApi();
 
+    // ── Line jump ──────────────────────────────────────────────────────
     function jumpToLine(line) {
       document.querySelectorAll('.line-row').forEach(el => el.classList.remove('active'));
       const target = document.querySelector(\`[data-line="\${line}"]\`);
@@ -519,15 +550,137 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
       vscode.postMessage({ command: 'jumpToLine', line: line });
     }
 
+    // ── Search filter ──────────────────────────────────────────────────
     function filterLines(query) {
       const q = query.toLowerCase().trim();
-      const rows = document.querySelectorAll('.line-row');
-      rows.forEach(r => {
+      document.querySelectorAll('.line-row').forEach(r => {
         const text = r.innerText.toLowerCase();
         r.style.display = (!q || text.includes(q)) ? 'flex' : 'none';
       });
     }
 
+    // ── Selection ──────────────────────────────────────────────────────
+    const selectedLineNums = new Set();
+
+    function updateSelectionUI() {
+      const count = selectedLineNums.size;
+      const selCount = document.getElementById('selCount');
+      const clearBtn = document.getElementById('clearBtn');
+      if (selCount) {
+        selCount.style.display = count > 0 ? 'inline' : 'none';
+        selCount.textContent = count + ' selected';
+      }
+      if (clearBtn) clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+
+    function toggleLineCheck(event, lineNum) {
+      event.stopPropagation();
+      const row = event.target.closest('.line-row');
+      if (event.target.checked) {
+        selectedLineNums.add(lineNum);
+        row && row.classList.add('checked');
+      } else {
+        selectedLineNums.delete(lineNum);
+        row && row.classList.remove('checked');
+      }
+      updateSelectionUI();
+    }
+
+    function selectAllLines() {
+      document.querySelectorAll('.line-row').forEach(row => {
+        const lineNum = parseInt(row.dataset.line);
+        const cb = row.querySelector('.line-checkbox');
+        selectedLineNums.add(lineNum);
+        row.classList.add('checked');
+        if (cb) cb.checked = true;
+      });
+      updateSelectionUI();
+    }
+
+    function selectCodeLines() {
+      document.querySelectorAll('.line-row').forEach(row => {
+        const lineNum = parseInt(row.dataset.line);
+        const cb = row.querySelector('.line-checkbox');
+        const isBlank = row.dataset.blank === '1';
+        if (!isBlank) {
+          selectedLineNums.add(lineNum);
+          row.classList.add('checked');
+          if (cb) cb.checked = true;
+        }
+      });
+      updateSelectionUI();
+    }
+
+    function clearSelection() {
+      selectedLineNums.clear();
+      document.querySelectorAll('.line-row').forEach(row => {
+        row.classList.remove('checked');
+        const cb = row.querySelector('.line-checkbox');
+        if (cb) cb.checked = false;
+      });
+      updateSelectionUI();
+    }
+
+    // ── Comment code generation ────────────────────────────────────────
+    function getCommentedCode() {
+      const style = document.getElementById('commentStyle')?.value || 'above';
+      const lang = '${escapeHtml(language || '')}';
+      let prefix = '// ';
+      if (['Python','Ruby','Shell','Bash','YAML'].includes(lang)) prefix = '# ';
+      else if (lang === 'HTML' || lang === 'XML') prefix = null; // wrap
+      else if (lang === 'CSS' || lang === 'SCSS') prefix = null; // wrap css
+
+      const targetSet = selectedLineNums.size > 0 ? selectedLineNums : null;
+      const rows = [...document.querySelectorAll('.line-row')];
+
+      return rows.map(row => {
+        const lineNum = parseInt(row.dataset.line);
+        const code = row.dataset.code || '';
+        const expl = row.dataset.expl || '';
+        const shouldComment = (targetSet === null || targetSet.has(lineNum)) && expl && code.trim();
+
+        if (!shouldComment) return code;
+
+        let commentStr;
+        if (lang === 'HTML' || lang === 'XML') {
+          commentStr = \`<!-- \${expl} -->\`;
+        } else if (lang === 'CSS' || lang === 'SCSS') {
+          commentStr = \`/* \${expl} */\`;
+        } else {
+          commentStr = prefix + expl;
+        }
+
+        if (style === 'inline') {
+          return \`\${code}  \${commentStr}\`;
+        } else {
+          const indent = (code.match(/^(\\s*)/) || [''])[0];
+          return \`\${indent}\${commentStr}\\n\${code}\`;
+        }
+      }).join('\\n');
+    }
+
+    function copyCommentedCode() {
+      const commented = getCommentedCode();
+      navigator.clipboard.writeText(commented).then(() => {
+        vscode.postMessage({ command: 'showInfo', text: 'Code with comments copied to clipboard!' });
+      }).catch(() => {
+        // fallback
+        const el = document.createElement('textarea');
+        el.value = commented;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        vscode.postMessage({ command: 'showInfo', text: 'Code with comments copied!' });
+      });
+    }
+
+    function insertCommentsInEditor() {
+      const commented = getCommentedCode();
+      vscode.postMessage({ command: 'insertComments', commentedCode: commented });
+    }
+
+    // ── Other actions ──────────────────────────────────────────────────
     function copyMarkdown() {
       vscode.postMessage({ command: 'copyMarkdown' });
     }

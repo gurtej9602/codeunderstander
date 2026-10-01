@@ -139,6 +139,28 @@ async function runExplanation(context, code, extension, fileName, startLine = 1,
                   }
                   break;
                 }
+                case 'showInfo': {
+                  vscode.window.showInformationMessage(message.text || 'Done!');
+                  break;
+                }
+                case 'insertComments': {
+                  const editor = vscode.window.activeTextEditor;
+                  if (!editor || !message.commentedCode) {
+                    vscode.window.showWarningMessage('No active editor to insert comments into.');
+                    break;
+                  }
+                  const fullRange = new vscode.Range(
+                    editor.document.positionAt(0),
+                    editor.document.positionAt(editor.document.getText().length)
+                  );
+                  await editor.edit(editBuilder => {
+                    editBuilder.replace(fullRange, message.commentedCode);
+                  });
+                  vscode.window.showInformationMessage(
+                    `✅ Comments inserted into ${path.basename(editor.document.fileName)}! Use Ctrl+Z to undo.`
+                  );
+                  break;
+                }
               }
             },
             null,
