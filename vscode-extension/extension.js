@@ -11,6 +11,7 @@ const { getWebviewContent } = require('./webviewView');
 
 let currentPanel = null;
 let lastAnalyzedContext = null;
+let lastActiveEditor = null; // saved before webview steals focus
 
 /**
  * Retrieves the Gemini API Key from secure storage or settings
@@ -61,6 +62,7 @@ async function runExplanation(context, code, extension, fileName, startLine = 1,
   const preferredModel = config.get('geminiModel') || 'gemini-flash-lite-latest';
   const themeMode = config.get('theme') || 'auto';
 
+  lastActiveEditor = vscode.window.activeTextEditor || lastActiveEditor;
   lastAnalyzedContext = { code, extension, fileName, startLine, isSelection, totalDocLines };
 
   const scopeLabel = isSelection ? `selection (L${startLine}+)` : `entire file (${totalDocLines || code.split('\n').length} lines)`;
@@ -144,21 +146,42 @@ async function runExplanation(context, code, extension, fileName, startLine = 1,
                   break;
                 }
                 case 'insertComments': {
-                  const editor = vscode.window.activeTextEditor;
-                  if (!editor || !message.commentedCode) {
-                    vscode.window.showWarningMessage('No active editor to insert comments into.');
+                  if (!message.commentedCode) {
+                    vscode.window.showWarningMessage('No commented code to insert.');
                     break;
                   }
+
+                  // Webview steals focus so activeTextEditor is often null.
+                  // Use a fallback chain to find the right editor.
+                  const editor =
+                    vscode.window.activeTextEditor ||
+                    lastActiveEditor ||
+                    vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file') ||
+                    vscode.window.visibleTextEditors[0];
+
+                  if (!editor) {
+                    vscode.window.showWarningMessage(
+                      'Could not find an open code file. Please click on your code file first, then try again.'
+                    );
+                    break;
+                  }
+
                   const fullRange = new vscode.Range(
                     editor.document.positionAt(0),
                     editor.document.positionAt(editor.document.getText().length)
                   );
-                  await editor.edit(editBuilder => {
+                  const success = await editor.edit(editBuilder => {
                     editBuilder.replace(fullRange, message.commentedCode);
                   });
-                  vscode.window.showInformationMessage(
-                    `✅ Comments inserted into ${path.basename(editor.document.fileName)}! Use Ctrl+Z to undo.`
-                  );
+                  if (success) {
+                    // Reveal the editor so user can see the changes
+                    await vscode.window.showTextDocument(editor.document, { preview: false, viewColumn: editor.viewColumn });
+                    vscode.window.showInformationMessage(
+                      `✅ Comments inserted into ${path.basename(editor.document.fileName)}! Press Ctrl+Z to undo.`
+                    );
+                  } else {
+                    vscode.window.showWarningMessage('Could not insert comments — the file may be read-only.');
+                  }
                   break;
                 }
               }
