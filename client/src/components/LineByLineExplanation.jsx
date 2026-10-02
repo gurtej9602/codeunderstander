@@ -57,7 +57,7 @@ export default function LineByLineExplanation({ lineByLine = [], rawCode = '', l
 
   // Comment insertion & selection states
   const [selectedLines, setSelectedLines] = useState(new Set());
-  const [commentStyle, setCommentStyle]   = useState('above'); // 'above' or 'inline'
+  const [commentStyle, setCommentStyle]   = useState('inline'); // 'inline' (same line) or 'above'
   const [copiedCommented, setCopiedCommented] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
@@ -321,8 +321,8 @@ export default function LineByLineExplanation({ lineByLine = [], rawCode = '', l
                   color: c.text, fontSize: '11px', outline: 'none', cursor: 'pointer',
                 }}
               >
-                <option value="above">Above Line (// comment)</option>
-                <option value="inline">Inline (code // comment)</option>
+                <option value="inline">Same Line (code // comment)</option>
+                <option value="above">Above Line (// comment \n code)</option>
               </select>
             </div>
 

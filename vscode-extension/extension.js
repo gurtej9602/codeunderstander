@@ -51,7 +51,7 @@ async function getApiKey(context) {
 /**
  * Explains given code and displays the Webview panel
  */
-async function runExplanation(context, code, extension, fileName, startLine = 1, isSelection = false, totalDocLines = 0) {
+async function runExplanation(context, code, extension, fileName, startLine = 1, isSelection = false, totalDocLines = 0, selectionRange = null) {
   const apiKey = await getApiKey(context);
   if (!apiKey) {
     vscode.window.showWarningMessage('CodeUnderstander: Gemini API Key is required to explain code.');
@@ -63,7 +63,20 @@ async function runExplanation(context, code, extension, fileName, startLine = 1,
   const themeMode = config.get('theme') || 'auto';
 
   lastActiveEditor = vscode.window.activeTextEditor || lastActiveEditor;
-  lastAnalyzedContext = { code, extension, fileName, startLine, isSelection, totalDocLines };
+  lastAnalyzedContext = {
+    code,
+    extension,
+    fileName,
+    startLine,
+    isSelection,
+    totalDocLines,
+    selectionRange: selectionRange ? {
+      startLine: selectionRange.start ? selectionRange.start.line : (selectionRange.startLine || 0),
+      startChar: selectionRange.start ? selectionRange.start.character : (selectionRange.startChar || 0),
+      endLine: selectionRange.end ? selectionRange.end.line : (selectionRange.endLine || 0),
+      endChar: selectionRange.end ? selectionRange.end.character : (selectionRange.endChar || 0),
+    } : null
+  };
 
   const scopeLabel = isSelection ? `selection (L${startLine}+)` : `entire file (${totalDocLines || code.split('\n').length} lines)`;
 
@@ -136,7 +149,8 @@ async function runExplanation(context, code, extension, fileName, startLine = 1,
                       lastAnalyzedContext.fileName,
                       lastAnalyzedContext.startLine,
                       lastAnalyzedContext.isSelection,
-                      lastAnalyzedContext.totalDocLines
+                      lastAnalyzedContext.totalDocLines,
+                      lastAnalyzedContext.selectionRange
                     );
                   }
                   break;
@@ -166,18 +180,32 @@ async function runExplanation(context, code, extension, fileName, startLine = 1,
                     break;
                   }
 
-                  const fullRange = new vscode.Range(
-                    editor.document.positionAt(0),
-                    editor.document.positionAt(editor.document.getText().length)
-                  );
+                  let targetRange;
+                  const isSel = lastAnalyzedContext && lastAnalyzedContext.isSelection && lastAnalyzedContext.selectionRange;
+                  if (isSel) {
+                    const sr = lastAnalyzedContext.selectionRange;
+                    targetRange = new vscode.Range(
+                      new vscode.Position(sr.startLine, sr.startChar),
+                      new vscode.Position(sr.endLine, sr.endChar)
+                    );
+                  } else {
+                    targetRange = new vscode.Range(
+                      editor.document.positionAt(0),
+                      editor.document.positionAt(editor.document.getText().length)
+                    );
+                  }
+
                   const success = await editor.edit(editBuilder => {
-                    editBuilder.replace(fullRange, message.commentedCode);
+                    editBuilder.replace(targetRange, message.commentedCode);
                   });
                   if (success) {
                     // Reveal the editor so user can see the changes
                     await vscode.window.showTextDocument(editor.document, { preview: false, viewColumn: editor.viewColumn });
+                    const targetDesc = isSel
+                      ? `selected code in ${path.basename(editor.document.fileName)}`
+                      : path.basename(editor.document.fileName);
                     vscode.window.showInformationMessage(
-                      `✅ Comments inserted into ${path.basename(editor.document.fileName)}! Press Ctrl+Z to undo.`
+                      `✅ Comments inserted on the same line for ${targetDesc}! Press Ctrl+Z to undo.`
                     );
                   } else {
                     vscode.window.showWarningMessage('Could not insert comments — the file may be read-only.');
@@ -285,9 +313,12 @@ function activate(context) {
     // If no meaningful selection or cursor merely clicked on 1 line without highlight, explain entire file
     const isMeaningfulSelection = selection && !selection.isEmpty && code && code.trim().length > 0;
 
+    let selectionRange = null;
     if (!isMeaningfulSelection) {
       code = editor.document.getText();
       startLine = 1;
+    } else {
+      selectionRange = selection;
     }
 
     if (!code || !code.trim()) {
@@ -298,7 +329,7 @@ function activate(context) {
     const ext = path.extname(editor.document.fileName) || '.txt';
     const fileName = path.basename(editor.document.fileName);
 
-    await runExplanation(context, code, ext, fileName, startLine, isMeaningfulSelection, docTotalLines);
+    await runExplanation(context, code, ext, fileName, startLine, isMeaningfulSelection, docTotalLines, selectionRange);
   });
 
   // Command: Set API Key

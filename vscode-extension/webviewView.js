@@ -476,8 +476,8 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
       <button class="btn btn-sm" id="clearBtn" onclick="clearSelection()" style="display:none;">✕ Clear</button>
       <label style="margin-left:6px;">Position:</label>
       <select id="commentStyle">
-        <option value="above">Above Line</option>
-        <option value="inline">Inline</option>
+        <option value="inline" selected>Same Line (code // comment)</option>
+        <option value="above">Above Line (// comment \n code)</option>
       </select>
       <button class="btn btn-sm btn-primary" onclick="copyCommentedCode()">📋 Copy with Comments</button>
       <button class="btn btn-sm" onclick="insertCommentsInEditor()">✏️ Insert into Editor</button>
@@ -623,7 +623,7 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
 
     // ── Comment code generation ────────────────────────────────────────
     function getCommentedCode() {
-      const style = document.getElementById('commentStyle')?.value || 'above';
+      const style = document.getElementById('commentStyle')?.value || 'inline';
       const lang = '${escapeHtml(language || '')}';
       let prefix = '// ';
       if (['Python','Ruby','Shell','Bash','YAML'].includes(lang)) prefix = '# ';
@@ -650,11 +650,12 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
           commentStr = prefix + expl;
         }
 
-        if (style === 'inline') {
-          return \`\${code}  \${commentStr}\`;
-        } else {
+        if (style === 'above') {
           const indent = (code.match(/^(\\s*)/) || [''])[0];
           return \`\${indent}\${commentStr}\\n\${code}\`;
+        } else {
+          // Same line (inline) as the code
+          return \`\${code}  \${commentStr}\`;
         }
       }).join('\\n');
     }
