@@ -2,11 +2,11 @@
   "name": "codeunderstander",
   "displayName": "CodeUnderstander — AI Code Explainer",
   "description": "Understand any code in plain English directly in VS Code. Line-by-line breakdowns, analogies, and walkthroughs powered by Gemini.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "GurtejSingh1476",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codeunderstander/codeunderstander"
+    "url": "https://github.com/gurtej9602/codeunderstander"
   },
   "license": "MIT",
   "engines": {
