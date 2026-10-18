@@ -5,8 +5,8 @@
 
 ---
 
-## ✨ Features
-
+- **🔊 Speak Out Loud (Audio Narration)**: Listen to full plain-English explanations, analogies, and walkthroughs hands-free with built-in text-to-speech controls (play, pause, resume, stop).
+- **✏️ Insert Comments Directly into Editor**: Auto-inject AI explanations right into your code on the same line (`code // comment` or `code # comment`), or above each line. Supports selected text insertion or full files.
 - **📄 Explain Entire File**: One click to break down any file from line 1 to the end (`Ctrl+Alt+F` / `Cmd+Alt+F`).
 - **🔍 Explain Selected Code**: Highlight any function or tricky section and press `Ctrl+Alt+E` (or right-click → **CodeUnderstander: Explain Selected Code**).
 - **⚡ Interactive Webview Panel**: Opens beside your active code editor:
@@ -17,7 +17,7 @@
   - **Key Concepts & Technical Terms**: Clear explanations of core patterns and identifiers.
 - **🌐 16 Languages Supported**: Java, Python, JavaScript, TypeScript, React JSX, React TSX, C++, C, Go, Rust, HTML, CSS, PHP, Ruby, Kotlin, and Swift.
 - **📋 Export to Markdown**: 1-click clipboard export formatted as clean markdown notes.
-- **🛡️ Built-in Model Failover**: Automatic fallback across Gemini Flash models (`gemini-flash-lite-latest` → `gemini-flash-latest` → `gemini-3.6-flash` → `gemini-3.8-flash`).
+- **🛡️ Built-in Model Failover**: Automatic fallback across Gemini Flash models.
 
 ---
 

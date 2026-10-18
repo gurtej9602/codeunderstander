@@ -1,8 +1,8 @@
 import React from 'react';
-import { BookOpen, Lightbulb, GraduationCap, Clock, FileText, BarChart2, Zap } from 'lucide-react';
+import { BookOpen, Lightbulb, GraduationCap, Clock, FileText, BarChart2, Zap, Volume2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function UnderstandingHeader({ data }) {
+export default function UnderstandingHeader({ data, onSpeakSection }) {
   const { currentTheme } = useTheme();
   const c = currentTheme.colors;
 
@@ -104,14 +104,37 @@ export default function UnderstandingHeader({ data }) {
         backgroundColor: c.surface, border: `1px solid ${c.border}`,
         boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
       }}>
-        <h3 style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
-          letterSpacing: '0.05em', color: c.textMuted, margin: '0 0 10px',
-        }}>
-          <BookOpen style={{ width: '15px', height: '15px', color: c.primary }} />
-          What This Code Does
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 10px' }}>
+          <h3 style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+            letterSpacing: '0.05em', color: c.textMuted, margin: 0,
+          }}>
+            <BookOpen style={{ width: '15px', height: '15px', color: c.primary }} />
+            What This Code Does
+          </h3>
+          {onSpeakSection && (
+            <button
+              onClick={() => onSpeakSection({
+                id: 'summary',
+                title: 'What This Code Does',
+                text: summary
+              })}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                fontSize: '11px', fontWeight: 600,
+                padding: '3px 8px', borderRadius: '6px',
+                backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                color: c.highlight, border: `1px solid ${c.border}`,
+                cursor: 'pointer',
+              }}
+              title="Speak summary out loud"
+            >
+              <Volume2 style={{ width: '12px', height: '12px' }} />
+              <span>Listen</span>
+            </button>
+          )}
+        </div>
         <p style={{ fontSize: '14px', lineHeight: '1.7', color: c.text, margin: 0 }}>{summary}</p>
       </div>
 
@@ -122,14 +145,37 @@ export default function UnderstandingHeader({ data }) {
           backgroundColor: 'rgba(255,255,255,0.03)',
           border: `1px solid ${c.border}`,
         }}>
-          <h3 style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: c.secondary, margin: '0 0 10px',
-          }}>
-            <Lightbulb style={{ width: '15px', height: '15px', color: c.highlight }} />
-            Think of It Like This
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 10px' }}>
+            <h3 style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.05em', color: c.secondary, margin: 0,
+            }}>
+              <Lightbulb style={{ width: '15px', height: '15px', color: c.highlight }} />
+              Think of It Like This
+            </h3>
+            {onSpeakSection && (
+              <button
+                onClick={() => onSpeakSection({
+                  id: 'analogy',
+                  title: 'Analogy',
+                  text: `Think of it like this: ${analogy}`
+                })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  fontSize: '11px', fontWeight: 600,
+                  padding: '3px 8px', borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                  color: c.highlight, border: `1px solid ${c.border}`,
+                  cursor: 'pointer',
+                }}
+                title="Speak analogy out loud"
+              >
+                <Volume2 style={{ width: '12px', height: '12px' }} />
+                <span>Listen</span>
+              </button>
+            )}
+          </div>
           <p style={{ fontSize: '14px', lineHeight: '1.7', color: c.text, fontStyle: 'italic', margin: 0 }}>
             &ldquo;{analogy}&rdquo;
           </p>
@@ -142,14 +188,37 @@ export default function UnderstandingHeader({ data }) {
           borderRadius: '16px', padding: '20px',
           backgroundColor: c.surface, border: `1px solid ${c.border}`,
         }}>
-          <h3 style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: c.textMuted, margin: '0 0 12px',
-          }}>
-            <GraduationCap style={{ width: '15px', height: '15px', color: '#22c55e' }} />
-            What You Can Learn From This Code
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
+            <h3 style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.05em', color: c.textMuted, margin: 0,
+            }}>
+              <GraduationCap style={{ width: '15px', height: '15px', color: '#22c55e' }} />
+              What You Can Learn From This Code
+            </h3>
+            {onSpeakSection && (
+              <button
+                onClick={() => onSpeakSection({
+                  id: 'learning',
+                  title: 'What You Can Learn',
+                  text: `What you can learn from this code: ${whatYouCanLearn.join('. ')}`
+                })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  fontSize: '11px', fontWeight: 600,
+                  padding: '3px 8px', borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                  color: c.highlight, border: `1px solid ${c.border}`,
+                  cursor: 'pointer',
+                }}
+                title="Speak takeaways out loud"
+              >
+                <Volume2 style={{ width: '12px', height: '12px' }} />
+                <span>Listen</span>
+              </button>
+            )}
+          </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {whatYouCanLearn.map((point, i) => (
               <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: c.text }}>

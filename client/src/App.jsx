@@ -10,9 +10,15 @@ import LineByLineExplanation from './components/LineByLineExplanation';
 import ErrorAlert from './components/ErrorAlert';
 import ScrollToTop from './components/ScrollToTop';
 import HistoryPanel from './components/HistoryPanel';
+import SpeechPlayer from './components/SpeechPlayer';
 import { useTheme } from './context/ThemeContext';
 import { useHistory } from './hooks/useHistory';
-import { Brain, ArrowRight, RotateCcw, Download, Copy, Check, Shield } from 'lucide-react';
+import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
+import { buildExplanationSpeechSections } from './utils/speechUtils';
+import {
+  Brain, ArrowRight, RotateCcw, Download, Copy, Check, Shield,
+  Volume2, Pause, Play, Square
+} from 'lucide-react';
 
 const THROTTLE_SECONDS = 5;
 
@@ -20,6 +26,27 @@ export default function App() {
   const { currentTheme } = useTheme();
   const c = currentTheme.colors;
   const { history, addToHistory, removeFromHistory, clearHistory } = useHistory();
+
+  // 🔊 Text-to-Speech hook
+  const {
+    isSupported: isSpeechSupported,
+    isPlaying: isSpeechPlaying,
+    isPaused: isSpeechPaused,
+    currentSectionIndex: speechSectionIndex,
+    currentSectionTitle: speechSectionTitle,
+    totalSections: speechTotalSections,
+    rate: speechRate,
+    voices: speechVoices,
+    selectedVoice: speechSelectedVoice,
+    speak: speakSpeech,
+    pause: pauseSpeech,
+    resume: resumeSpeech,
+    stop: stopSpeech,
+    nextSection: speechNextSection,
+    previousSection: speechPrevSection,
+    setRate: setSpeechRate,
+    setVoice: setSpeechVoice,
+  } = useSpeechSynthesis();
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
@@ -75,6 +102,7 @@ export default function App() {
   const handleExplainCode = async () => {
     if (!fileContent || !selectedFile) { setFileError('Please upload or select a code file first.'); return; }
     if (cooldownRemaining > 0) return;
+    stopSpeech();
     setIsLoading(true);
     setApiError(null);
     setReviewResult(null);
@@ -112,18 +140,46 @@ export default function App() {
   };
 
   const handleReset = () => {
+    stopSpeech();
     setSelectedFile(null); setFileContent(''); setDetectedLanguage('');
     setFileError(null); setReviewResult(null); setApiError(null);
     setAutoRetryIn(0); setCooldownRemaining(0);
   };
 
   const handleRestoreHistory = (entry) => {
+    stopSpeech();
     setSelectedFile({ name: entry.fileName, size: 0, extension: entry.fileExtension, isSample: false });
     setFileContent(entry.fileContent);
     setDetectedLanguage(entry.language);
     setReviewResult(entry.result);
     setApiError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 🔊 Audio speech triggers
+  const handleToggleSpeech = () => {
+    if (isSpeechPlaying) {
+      if (isSpeechPaused) {
+        resumeSpeech();
+      } else {
+        pauseSpeech();
+      }
+    } else {
+      if (!reviewResult) return;
+      const sections = buildExplanationSpeechSections(reviewResult, selectedFile?.name);
+      speakSpeech(sections);
+    }
+  };
+
+  const handleSpeakSection = (section) => {
+    if (!section) return;
+    speakSpeech([section]);
+  };
+
+  const handleSpeakSteps = (steps) => {
+    if (!steps || !steps.length) return;
+    const text = steps.map(s => `Step ${s.step}: ${s.title}, covering ${s.lines}. ${s.explanation}`).join(' ');
+    speakSpeech([{ id: 'steps', title: 'Step-by-Step Walkthrough', text }]);
   };
 
   const buildMarkdown = () => {
@@ -286,6 +342,53 @@ export default function App() {
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {/* 🔊 Speak Out Loud Button & Controls */}
+                {isSpeechSupported && (
+                  <>
+                    {!isSpeechPlaying ? (
+                      <button
+                        type="button"
+                        onClick={handleToggleSpeech}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-[1.02] shadow-md"
+                        style={{
+                          background: c.btnGradient,
+                          color: '#ffffff',
+                          boxShadow: c.btnShadow,
+                        }}
+                        title="Listen to the explanation spoken out loud"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>Speak Out Loud</span>
+                      </button>
+                    ) : (
+                      <div
+                        className="flex items-center space-x-1 p-0.5 rounded-lg border shadow-sm"
+                        style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', borderColor: c.primary }}
+                      >
+                        <button
+                          type="button"
+                          onClick={isSpeechPaused ? resumeSpeech : pauseSpeech}
+                          className="flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-semibold transition-colors"
+                          style={{ color: c.highlight }}
+                          title={isSpeechPaused ? 'Resume speaking' : 'Pause speaking'}
+                        >
+                          {isSpeechPaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5 fill-current" />}
+                          <span>{isSpeechPaused ? 'Resume' : 'Pause'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopSpeech}
+                          className="flex items-center space-x-1 px-2 py-1 rounded text-xs text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          title="Stop speaking"
+                        >
+                          <Square className="w-3.5 h-3.5 fill-current" />
+                          <span>Stop</span>
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <button onClick={handleCopyMarkdown}
                   className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: c.text, border: `1px solid ${c.border}` }}
@@ -321,8 +424,14 @@ export default function App() {
               </div>
             </div>
 
-            <UnderstandingHeader data={{ ...reviewResult, fileName: selectedFile?.name }} />
-            <StepByStep steps={reviewResult.stepByStep} />
+            <UnderstandingHeader
+              data={{ ...reviewResult, fileName: selectedFile?.name }}
+              onSpeakSection={handleSpeakSection}
+            />
+            <StepByStep
+              steps={reviewResult.stepByStep}
+              onSpeakSteps={handleSpeakSteps}
+            />
             <LineByLineExplanation
               lineByLine={reviewResult.lineByLine}
               rawCode={fileContent}
@@ -357,6 +466,27 @@ export default function App() {
       </footer>
 
       <ScrollToTop />
+
+      {/* 🔊 Floating / Docked Speech Narration Player */}
+      <SpeechPlayer
+        isPlaying={isSpeechPlaying}
+        isPaused={isSpeechPaused}
+        currentSectionIndex={speechSectionIndex}
+        currentSectionTitle={speechSectionTitle}
+        totalSections={speechTotalSections}
+        rate={speechRate}
+        voices={speechVoices}
+        selectedVoice={speechSelectedVoice}
+        onPlay={handleToggleSpeech}
+        onPause={pauseSpeech}
+        onResume={resumeSpeech}
+        onStop={stopSpeech}
+        onNext={speechNextSection}
+        onPrevious={speechPrevSection}
+        onRateChange={setSpeechRate}
+        onVoiceChange={setSpeechVoice}
+        fileName={selectedFile?.name}
+      />
 
     </div>
   );

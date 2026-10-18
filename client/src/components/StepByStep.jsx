@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Cpu, ChevronDown, ChevronUp } from 'lucide-react';
+import { Cpu, ChevronDown, ChevronUp, Volume2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function StepByStep({ steps = [] }) {
+export default function StepByStep({ steps = [], onSpeakSteps }) {
   const { currentTheme } = useTheme();
   const c = currentTheme.colors;
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -18,8 +18,7 @@ export default function StepByStep({ steps = [] }) {
       transition: 'all 0.3s',
     }}>
       {/* Collapsible header */}
-      <button
-        onClick={() => setIsCollapsed(o => !o)}
+      <div
         style={{
           width: '100%',
           display: 'flex',
@@ -27,12 +26,13 @@ export default function StepByStep({ steps = [] }) {
           justifyContent: 'space-between',
           padding: '14px 20px',
           background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
           borderBottom: isCollapsed ? 'none' : `1px solid ${c.border}`,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          onClick={() => setIsCollapsed(o => !o)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}
+        >
           <Cpu style={{ width: '16px', height: '16px', color: c.primary }} />
           <span style={{ fontSize: '14px', fontWeight: 700, color: c.text }}>Step-by-Step Walkthrough</span>
           <span style={{
@@ -41,10 +41,36 @@ export default function StepByStep({ steps = [] }) {
             color: c.highlight, border: `1px solid ${c.border}`,
           }}>{steps.length} steps</span>
         </div>
-        {isCollapsed
-          ? <ChevronDown style={{ width: '16px', height: '16px', color: c.textMuted }} />
-          : <ChevronUp style={{ width: '16px', height: '16px', color: c.textMuted }} />}
-      </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {onSpeakSteps && (
+            <button
+              onClick={() => onSpeakSteps(steps)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                fontSize: '11px', fontWeight: 600,
+                padding: '3px 8px', borderRadius: '6px',
+                backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                color: c.highlight, border: `1px solid ${c.border}`,
+                cursor: 'pointer',
+              }}
+              title="Speak steps out loud"
+            >
+              <Volume2 style={{ width: '12px', height: '12px' }} />
+              <span>Listen</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsCollapsed(o => !o)}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+          >
+            {isCollapsed
+              ? <ChevronDown style={{ width: '16px', height: '16px', color: c.textMuted }} />
+              : <ChevronUp style={{ width: '16px', height: '16px', color: c.textMuted }} />}
+          </button>
+        </div>
+      </div>
 
       {!isCollapsed && (
         <div style={{ padding: '20px 20px 20px 44px', position: 'relative' }}>

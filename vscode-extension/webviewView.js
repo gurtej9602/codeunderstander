@@ -401,8 +401,12 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
       <span class="badge badge-lang">${escapeHtml(language)}</span>
       <span class="badge badge-diff">${escapeHtml(diff.label)}</span>
     </div>
-    <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">
-      ${escapeHtml(fileName)} • ${linesCount} lines explained
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button id="ttsBtn" class="btn btn-sm" onclick="toggleSpeech()" style="background: linear-gradient(135deg, #0284c7, #9333ea); color: #fff; border: none; font-weight: bold; cursor: pointer;">🔊 Speak Out Loud</button>
+      <button id="ttsStopBtn" class="btn btn-sm" onclick="stopSpeech()" style="display:none; color: #ff467a; border: 1px solid rgba(255,70,122,0.4); cursor: pointer;">⏹ Stop</button>
+      <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">
+        ${escapeHtml(fileName)} • ${linesCount} lines explained
+      </div>
     </div>
   </div>
 
@@ -535,12 +539,118 @@ function getWebviewContent(result, fileName, themeMode = 'auto', meta = {}) {
   <!-- Action Bar -->
   <div class="action-bar">
     <button class="btn btn-primary" onclick="copyMarkdown()">📋 Copy as Markdown</button>
+    <button class="btn" onclick="toggleSpeech()" style="background: rgba(147, 51, 234, 0.25); border-color: #c084fc; color: #f8fafc;">🔊 Read Aloud</button>
     ${isSelection ? `<button class="btn" onclick="explainEntireFile()">📄 Explain Entire File</button>` : ''}
     <button class="btn" onclick="explainAgain()">🔄 Refresh Explanation</button>
   </div>
 
   <script>
     const vscode = acquireVsCodeApi();
+
+    // ── Speech Synthesis (Speak Out Loud) ─────────────────────────────
+    let ttsQueue = [];
+    let ttsIndex = 0;
+    let isSpeaking = false;
+    let isPaused = false;
+
+    function buildSpeechScript() {
+      const parts = [];
+      const summaryText = ${JSON.stringify(summary || '')};
+      const analogyText = ${JSON.stringify(analogy || '')};
+      const conceptsList = ${JSON.stringify((concepts || []).map(c => `${c.name}: ${c.explanation}`).join('. '))};
+      const stepsList = ${JSON.stringify((stepByStep || []).map(s => `Step ${s.step}: ${s.title}. ${s.explanation}`).join('. '))};
+      const learnList = ${JSON.stringify((whatYouCanLearn || []).join('. '))};
+      const fname = ${JSON.stringify(fileName || 'file')};
+      const lang = ${JSON.stringify(language || '')};
+      const diff = ${JSON.stringify(difficulty || '')};
+
+      parts.push('Code explanation for ' + fname + '. Language: ' + lang + '. Difficulty: ' + diff + '.');
+      if (summaryText) parts.push('What this code does: ' + summaryText);
+      if (analogyText) parts.push('Think of it like this: ' + analogyText);
+      if (conceptsList) parts.push('Key concepts: ' + conceptsList);
+      if (stepsList) parts.push('Step by step walkthrough: ' + stepsList);
+      if (learnList) parts.push('What you can learn: ' + learnList);
+
+      return parts.join(' ').replace(/[\x60*_#]/g, '').trim();
+    }
+
+    function updateTTSButton() {
+      const btn = document.getElementById('ttsBtn');
+      const stopBtn = document.getElementById('ttsStopBtn');
+      if (!btn) return;
+      if (isSpeaking && !isPaused) {
+        btn.textContent = '⏸ Pause';
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
+      } else if (isSpeaking && isPaused) {
+        btn.textContent = '▶ Resume';
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
+      } else {
+        btn.textContent = '🔊 Speak Out Loud';
+        if (stopBtn) stopBtn.style.display = 'none';
+      }
+    }
+
+    function toggleSpeech() {
+      if (!('speechSynthesis' in window)) {
+        vscode.postMessage({ command: 'showInfo', text: 'Speech synthesis is not supported in this environment.' });
+        return;
+      }
+      if (isSpeaking) {
+        if (isPaused) {
+          window.speechSynthesis.resume();
+          isPaused = false;
+        } else {
+          window.speechSynthesis.pause();
+          isPaused = true;
+        }
+        updateTTSButton();
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const fullText = buildSpeechScript();
+      if (!fullText) return;
+
+      ttsQueue = fullText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [fullText];
+      ttsIndex = 0;
+      isSpeaking = true;
+      isPaused = false;
+      updateTTSButton();
+      playNextChunk();
+    }
+
+    function playNextChunk() {
+      if (!isSpeaking) return;
+      if (ttsIndex >= ttsQueue.length) {
+        stopSpeech();
+        return;
+      }
+      const chunk = ttsQueue[ttsIndex++].trim();
+      if (!chunk) {
+        playNextChunk();
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance(chunk);
+      utter.rate = 1.0;
+      utter.onend = () => {
+        if (isSpeaking && !isPaused) playNextChunk();
+      };
+      utter.onerror = (e) => {
+        if (isSpeaking && !isPaused) playNextChunk();
+      };
+      window.speechSynthesis.speak(utter);
+    }
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      isSpeaking = false;
+      isPaused = false;
+      ttsIndex = 0;
+      ttsQueue = [];
+      updateTTSButton();
+    }
 
     // ── Line jump ──────────────────────────────────────────────────────
     function jumpToLine(line) {
