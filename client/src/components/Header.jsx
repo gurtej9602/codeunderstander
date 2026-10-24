@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ShieldCheck, Zap, Key, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Zap, Key, ExternalLink } from 'lucide-react';
 import ThemeSelector from './ThemeSelector';
 import { useTheme } from '../context/ThemeContext';
 
@@ -19,20 +19,12 @@ export default function Header({ backendHealth, rateLimitCooldown }) {
 
         {/* Brand */}
         <div className="flex items-center space-x-3">
-          <div
-            className="w-10 h-10 rounded-xl p-[1px] shadow-lg"
-            style={{
-              background: c.btnGradient,
-              boxShadow: c.btnShadow,
-            }}
-          >
-            <div
-              className="w-full h-full rounded-[11px] flex items-center justify-center"
-              style={{ backgroundColor: c.bg }}
-            >
-              <Sparkles className="w-5 h-5" style={{ color: c.primary }} />
-            </div>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Code Understander Logo"
+            className="w-10 h-10 rounded-xl object-cover shadow-lg"
+            style={{ boxShadow: c.btnShadow }}
+          />
           <div>
             <div className="flex items-center space-x-2">
               <span className="font-bold text-lg tracking-tight" style={{ color: c.text }}>
