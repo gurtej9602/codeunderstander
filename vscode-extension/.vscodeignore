@@ -1,0 +1,7 @@
+.vscode/**
+.vscode-test/**
+*.vsix
+icon_original.png
+.git/**
+.gitignore
+node_modules/**

@@ -6,13 +6,17 @@
  * API key is set once as a Vercel environment variable (GEMINI_API_KEY).
  */
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+try { require('dotenv').config(); } catch (_) {}
+
+function getApiKey() {
+  return process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+}
 
 const MODEL_POOL = [
-  'gemini-2.0-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-3.8-flash',
+  'gemini-3.6-flash',
 ];
 
 const MAX_FILE_SIZE_BYTES = 200 * 1024;
@@ -91,14 +95,16 @@ function reconcile(lines, codeLines) {
 
 // ─── Gemini REST call ────────────────────────────────────────────────────────
 
-async function callGemini(prompt, schema) {
+async function callGemini(prompt, schema, apiKey) {
+  const key = apiKey || getApiKey();
+  let lastError = null;
   for (const model of MODEL_POOL) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
       const body = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.1,
+          temperature: 0.15,
           maxOutputTokens: 8192,
           responseMimeType: 'application/json',
           ...(schema ? { responseSchema: schema } : {}),
@@ -109,15 +115,28 @@ async function callGemini(prompt, schema) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (res.status === 429 || res.status === 503) continue;
-      if (!res.ok) continue;
+      if (res.status === 429 || res.status === 503) {
+        console.warn(`[${model}] ${res.status} returned, trying next model...`);
+        lastError = new Error(`Rate limit/busy (${res.status}) on ${model}`);
+        continue;
+      }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn(`[${model}] error ${res.status}:`, errData?.error?.message || res.statusText);
+        lastError = new Error(errData?.error?.message || `Error ${res.status}`);
+        continue;
+      }
       const data = await res.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) continue;
       return parseJson(text);
-    } catch { continue; }
+    } catch (e) {
+      console.warn(`[${model}] exception:`, e.message);
+      lastError = e;
+      continue;
+    }
   }
-  throw new Error('All Gemini models failed or are rate limited');
+  throw lastError || new Error('All Gemini models failed to generate content');
 }
 
 // ─── Main analysis prompt ────────────────────────────────────────────────────
@@ -167,7 +186,7 @@ Include ALL lines ${startLine} to ${startLine + lines.length - 1}. No gaps.`;
 
 // ─── Fetch missing lines in chunks ──────────────────────────────────────────
 
-async function fetchMissingChunks(codeLines, presentNums, language) {
+async function fetchMissingChunks(codeLines, presentNums, language, apiKey) {
   const missing = [];
   for (let i = 1; i <= codeLines.length; i++) {
     if (!presentNums.has(i)) missing.push(i);
@@ -187,7 +206,7 @@ async function fetchMissingChunks(codeLines, presentNums, language) {
         const batch = group.slice(j, j + LINES_PER_CHUNK);
         const batchLines = batch.map(n => codeLines[n - 1]);
         try {
-          const result = await callGemini(buildChunkPrompt(batchLines.join('\n'), language, batch[0], batchLines));
+          const result = await callGemini(buildChunkPrompt(batchLines.join('\n'), language, batch[0], batchLines), null, apiKey);
           if (Array.isArray(result)) extras.push(...result);
           else if (result?.lineByLine) extras.push(...result.lineByLine);
         } catch { /* fallback will cover */ }
@@ -208,7 +227,8 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ success: false, error: 'Method not allowed' }); return; }
 
-  if (!GEMINI_API_KEY) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
     return res.status(401).json({ success: false, error: 'GEMINI_API_KEY not configured', isApiKeyMissing: true });
   }
 
@@ -224,7 +244,7 @@ module.exports = async function handler(req, res) {
   try {
     // ── Main analysis call ──
     const prompt = buildPrompt(sanitizedContent, language, fileName, codeLines);
-    const result = await callGemini(prompt);
+    const result = await callGemini(prompt, null, apiKey);
 
     // ── Guarantee 100% line coverage ──
     const lineByLine = Array.isArray(result.lineByLine) ? result.lineByLine : [];
@@ -233,7 +253,7 @@ module.exports = async function handler(req, res) {
 
     let allLines = [...lineByLine];
     if (missing > 0) {
-      const extras = await fetchMissingChunks(codeLines, presentNums, language);
+      const extras = await fetchMissingChunks(codeLines, presentNums, language, apiKey);
       allLines = [...allLines, ...extras];
     }
 

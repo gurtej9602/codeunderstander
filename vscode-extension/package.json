@@ -1,6 +1,6 @@
 {
-  "name": "codeunderstander",
-  "displayName": "CodeUnderstander — AI Code Explainer",
+  "name": "codeunderstander-gemini",
+  "displayName": "CodeUnderstander Gemini — AI Code Explainer",
   "description": "Understand any code in plain English directly in VS Code. Line-by-line breakdowns, analogies, and walkthroughs powered by Gemini.",
   "version": "1.2.0",
   "publisher": "GurtejSingh1476",
@@ -29,37 +29,37 @@
   "icon": "icon.png",
   "main": "./extension.js",
   "activationEvents": [
-    "onCommand:codeunderstander.explainFile",
-    "onCommand:codeunderstander.explainSelection",
-    "onCommand:codeunderstander.setApiKey"
+    "onCommand:codeunderstander-gemini.explainFile",
+    "onCommand:codeunderstander-gemini.explainSelection",
+    "onCommand:codeunderstander-gemini.setApiKey"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "codeunderstander.explainFile",
+        "command": "codeunderstander-gemini.explainFile",
         "title": "CodeUnderstander: Explain Active File",
         "icon": "$(sparkle)"
       },
       {
-        "command": "codeunderstander.explainSelection",
+        "command": "codeunderstander-gemini.explainSelection",
         "title": "CodeUnderstander: Explain Selected Code",
         "icon": "$(sparkle)"
       },
       {
-        "command": "codeunderstander.setApiKey",
+        "command": "codeunderstander-gemini.setApiKey",
         "title": "CodeUnderstander: Set Gemini API Key",
         "icon": "$(key)"
       }
     ],
     "keybindings": [
       {
-        "command": "codeunderstander.explainSelection",
+        "command": "codeunderstander-gemini.explainSelection",
         "key": "ctrl+alt+e",
         "mac": "cmd+alt+e",
         "when": "editorHasSelection"
       },
       {
-        "command": "codeunderstander.explainFile",
+        "command": "codeunderstander-gemini.explainFile",
         "key": "ctrl+alt+f",
         "mac": "cmd+alt+f",
         "when": "editorTextFocus"
@@ -68,24 +68,24 @@
     "menus": {
       "editor/context": [
         {
-          "command": "codeunderstander.explainFile",
+          "command": "codeunderstander-gemini.explainFile",
           "group": "navigation@1"
         },
         {
-          "command": "codeunderstander.explainSelection",
+          "command": "codeunderstander-gemini.explainSelection",
           "when": "editorHasSelection",
           "group": "navigation@2"
         }
       ],
       "explorer/context": [
         {
-          "command": "codeunderstander.explainFile",
+          "command": "codeunderstander-gemini.explainFile",
           "group": "navigation@1"
         }
       ],
       "editor/title": [
         {
-          "command": "codeunderstander.explainFile",
+          "command": "codeunderstander-gemini.explainFile",
           "group": "navigation",
           "title": "Explain Active File"
         }
@@ -94,7 +94,7 @@
     "configuration": {
       "title": "CodeUnderstander",
       "properties": {
-        "codeunderstander.geminiModel": {
+        "codeunderstander-gemini.geminiModel": {
           "type": "string",
           "default": "gemini-flash-lite-latest",
           "enum": [
@@ -105,7 +105,7 @@
           ],
           "description": "The Gemini model used to explain code."
         },
-        "codeunderstander.theme": {
+        "codeunderstander-gemini.theme": {
           "type": "string",
           "default": "auto",
           "enum": [

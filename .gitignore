@@ -35,3 +35,6 @@ yarn-debug.log*
 # Misc
 .cache/
 coverage/
+
+.vercel
+.env*

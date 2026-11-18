@@ -22,7 +22,7 @@ async function getApiKey(context) {
   if (apiKey && apiKey.trim()) return apiKey.trim();
 
   // 2. Try configuration settings
-  const config = vscode.workspace.getConfiguration('codeunderstander');
+  const config = vscode.workspace.getConfiguration('codeunderstander-gemini');
   const configKey = config.get('geminiApiKey');
   if (configKey && configKey.trim()) return configKey.trim();
 
@@ -58,7 +58,7 @@ async function runExplanation(context, code, extension, fileName, startLine = 1,
     return;
   }
 
-  const config = vscode.workspace.getConfiguration('codeunderstander');
+  const config = vscode.workspace.getConfiguration('codeunderstander-gemini');
   const preferredModel = config.get('geminiModel') || 'gemini-flash-lite-latest';
   const themeMode = config.get('theme') || 'auto';
 
@@ -272,7 +272,7 @@ function formatMarkdown(result, fileName) {
  */
 function activate(context) {
   // Command: Explain Active File
-  const explainFileCmd = vscode.commands.registerCommand('codeunderstander.explainFile', async (uri) => {
+  const explainFileCmd = vscode.commands.registerCommand('codeunderstander-gemini.explainFile', async (uri) => {
     let document;
     if (uri && uri.fsPath) {
       document = await vscode.workspace.openTextDocument(uri);
@@ -298,7 +298,7 @@ function activate(context) {
   });
 
   // Command: Explain Selected Code
-  const explainSelectionCmd = vscode.commands.registerCommand('codeunderstander.explainSelection', async () => {
+  const explainSelectionCmd = vscode.commands.registerCommand('codeunderstander-gemini.explainSelection', async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       vscode.window.showInformationMessage('No active code editor found.');
@@ -333,7 +333,7 @@ function activate(context) {
   });
 
   // Command: Set API Key
-  const setApiKeyCmd = vscode.commands.registerCommand('codeunderstander.setApiKey', async () => {
+  const setApiKeyCmd = vscode.commands.registerCommand('codeunderstander-gemini.setApiKey', async () => {
     const key = await vscode.window.showInputBox({
       prompt: 'Enter your Gemini API Key',
       password: true,
@@ -351,7 +351,7 @@ function activate(context) {
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.text = '$(sparkle) Explain File';
   statusBarItem.tooltip = 'CodeUnderstander: Explain Active File with Gemini (or use Ctrl+Alt+F)';
-  statusBarItem.command = 'codeunderstander.explainFile';
+  statusBarItem.command = 'codeunderstander-gemini.explainFile';
   statusBarItem.show();
 
   context.subscriptions.push(
